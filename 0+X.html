@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>My first three.js app</title>
+    <style>
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="js/three.js"></script>
+    <script type="module">
+      import * as THREE from "./js/three.module.js";
+      import { EffectComposer } from "./js/postprocessing/EffectComposer.js";
+      import { RenderPass } from "./js/postprocessing/RenderPass.js";
+      import { GlitchPass } from "./js/postprocessing/GlitchPass.js";
+
+      import { OrbitControls } from "./js/OrbitControls.js";
+
+      const randomizeMatrix = (function () {
+        const position = new THREE.Vector3();
+        const rotation = new THREE.Euler();
+        const quaternion = new THREE.Quaternion();
+        const scale = new THREE.Vector3();
+
+        return function (matrix) {
+          position.x = Math.random() * 40 - 20;
+          position.y = Math.random() * 40 - 20;
+          position.z = Math.random() * 40 - 20;
+
+          rotation.x = Math.random() * 2 * Math.PI;
+          rotation.y = Math.random() * 2 * Math.PI;
+          rotation.z = Math.random() * 2 * Math.PI;
+
+          quaternion.setFromEuler(rotation);
+
+          scale.x = scale.y = scale.z = Math.random() * 1;
+
+          matrix.compose(position, quaternion, scale);
+        };
+      })();
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      // controls
+
+      let controls = new OrbitControls(camera, renderer.domElement);
+      controls.autoRotate = true;
+
+      document.body.appendChild(renderer.domElement);
+
+      const loader = new THREE.FontLoader();
+
+      loader.load("fonts/helvetiker_regular.typeface.json", function (font) {
+        const geometry = new THREE.TextGeometry("0+X", {
+          font: font,
+          size: 1,
+          height: 0.2,
+        });
+
+        const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+        const matrix = new THREE.Matrix4();
+        const mesh = new THREE.InstancedMesh(geometry, material, 800);
+
+        for (let i = 0; i < 800; i++) {
+          randomizeMatrix(matrix);
+          mesh.setMatrixAt(i, matrix);
+        }
+
+        scene.add(mesh);
+
+        let composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+
+        let glitchPass = new GlitchPass();
+        composer.addPass(glitchPass);
+
+        function animate() {
+          requestAnimationFrame(animate);
+
+          controls.update();
+
+          composer.render();
+        }
+
+        animate();
+      });
+
+      camera.position.z = 15;
+    </script>
+  </body>
+</html>
